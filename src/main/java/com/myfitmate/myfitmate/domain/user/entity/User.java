@@ -1,5 +1,7 @@
-package com.myfitmate.myfitmate.domain.user;
+package com.myfitmate.myfitmate.domain.user.entity;
 
+import com.myfitmate.myfitmate.domain.user.Gender;
+import com.myfitmate.myfitmate.domain.user.Goal;
 import jakarta.persistence.*;
 import lombok.*;
 
