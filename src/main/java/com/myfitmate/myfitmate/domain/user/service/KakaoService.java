@@ -2,7 +2,7 @@ package com.myfitmate.myfitmate.domain.user.service;
 
 import com.myfitmate.myfitmate.domain.user.Gender;
 import com.myfitmate.myfitmate.domain.user.Goal;
-import com.myfitmate.myfitmate.domain.user.JwtUtil;
+import com.myfitmate.myfitmate.security.JwtUtil;
 import com.myfitmate.myfitmate.domain.user.entity.User;
 import com.myfitmate.myfitmate.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
