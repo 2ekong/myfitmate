@@ -3,9 +3,11 @@ package com.myfitmate.myfitmate.domain.user.service;
 import com.myfitmate.myfitmate.domain.user.Gender;
 import com.myfitmate.myfitmate.domain.user.Goal;
 import com.myfitmate.myfitmate.domain.user.dto.LoginRequestDto;
+import com.myfitmate.myfitmate.domain.user.dto.UpdateUserRequestDto;
 import com.myfitmate.myfitmate.domain.user.entity.User;
 import com.myfitmate.myfitmate.domain.user.dto.SignupRequestDto;
 import com.myfitmate.myfitmate.domain.user.repository.UserRepository;
+import com.myfitmate.myfitmate.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
 
     public long signup(SignupRequestDto dto) {
         if (userRepository.existsByUsername(dto.getUsername())) {
@@ -72,6 +75,21 @@ public class UserService {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
-        return user.getUsername();
+        return jwtUtil.createToken(user.getId(), user.getUsername());
     }
+
+    public void updateUser(User user, UpdateUserRequestDto dto) {
+        if (dto.getNickname() != null) user.setNickname(dto.getNickname());
+        if (dto.getHeightCm() != null) user.setHeightCm(dto.getHeightCm());
+        if (dto.getWeightKg() != null) user.setWeightKg(dto.getWeightKg());
+        if (dto.getGoal() != null) {
+            try {
+                user.setGoal(Goal.valueOf(dto.getGoal().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("유효하지 않은 목표입니다.");
+            }
+        }
+        userRepository.save(user);
+    }
+
 }
