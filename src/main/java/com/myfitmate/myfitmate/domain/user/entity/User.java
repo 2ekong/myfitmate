@@ -11,7 +11,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "users")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Setter
+@NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class User {
@@ -32,13 +33,14 @@ public class User {
     private String password;
 
     @Column(name = "kakao_id", unique = true)
-    private String kakaoId;
+    private Long kakaoId;
 
     private String nickname;
 
     @Enumerated(EnumType.STRING)    //DB에 0, 1말고 문자열로 저장
     private Gender gender;
 
+    @Column(nullable = true)
     private LocalDate birthDate;
 
     private Float heightCm;
