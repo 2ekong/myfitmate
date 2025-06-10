@@ -3,7 +3,9 @@ package com.myfitmate.myfitmate.domain.user.controller;
 import com.myfitmate.myfitmate.domain.user.dto.LoginRequestDto;
 import com.myfitmate.myfitmate.domain.user.dto.SignupRequestDto;
 import com.myfitmate.myfitmate.domain.user.entity.User;
+import com.myfitmate.myfitmate.domain.user.service.TokenService;
 import com.myfitmate.myfitmate.domain.user.service.UserService;
+import com.myfitmate.myfitmate.security.UserDetailsImpl;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +18,8 @@ import org.springframework.web.bind.annotation.*;
 public class AutoController {
 
     private final UserService userService;
+    private final TokenService tokenService;
+
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody @Valid SignupRequestDto dto) {
@@ -29,8 +33,17 @@ public class AutoController {
         return ResponseEntity.ok("로그인 성공" + username);
     }
 
-    @GetMapping("/me")
-    public ResponseEntity<?> getMyPage(@AuthenticationPrincipal User user) {
-        return ResponseEntity.ok("내 정보: " + user.getNickname());
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        tokenService.deleteRefreshToken(userDetails.getUser().getId());
+        return ResponseEntity.ok("로그아웃 완료");
     }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestHeader("Authorization") String refreshTokenHeader) {
+        String refreshToken = refreshTokenHeader.replace("Bearer ", "");
+        String newAccessToken = tokenService.refreshAccessToken(refreshToken);
+        return ResponseEntity.ok(newAccessToken);
+    }
+
 }

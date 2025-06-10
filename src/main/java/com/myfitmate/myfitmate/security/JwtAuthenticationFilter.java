@@ -1,5 +1,6 @@
 package com.myfitmate.myfitmate.security;
 
+import com.myfitmate.myfitmate.domain.user.entity.User;
 import com.myfitmate.myfitmate.domain.user.service.CustomerUserDetailService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -31,8 +32,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             Long userId = jwtUtil.extractUserId(token);
             if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                var userDetails = userDetailsService.loadUserById(userId);
-                var auth = new JwtAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                UserDetailsImpl userDetails = userDetailsService.loadUserById(userId);
+                JwtAuthenticationToken auth = new JwtAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
