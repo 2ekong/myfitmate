@@ -14,11 +14,16 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    private Key key;
+    private final Key key;
+    private final long refreshTokenExpiration;
 
-    public JwtUtil(@Value("${jwt.secret}") String secret) {
+    public JwtUtil(
+            @Value("${jwt.secret}") String secret,
+            @Value("${jwt.refresh-token-expiration}") long refreshTokenExpiration
+    ) {
         byte[] keyBytes = Base64.getDecoder().decode(secret);
         this.key = Keys.hmacShaKeyFor(keyBytes);
+        this.refreshTokenExpiration = refreshTokenExpiration;
     }
 
     public String createToken(Long userId, String nickname) {
@@ -26,7 +31,7 @@ public class JwtUtil {
                 .setSubject(userId.toString())
                 .claim("nickname", nickname)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 3600000)) // 1시간 유효
+                .setExpiration(new Date(System.currentTimeMillis() + 3600000)) // 1시간
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -41,4 +46,14 @@ public class JwtUtil {
         return Long.parseLong(claims.getSubject());
     }
 
+    public String createRefreshToken(Long userId) {
+        Date now = new Date();
+        Date expiry = new Date(now.getTime() + refreshTokenExpiration);
+        return Jwts.builder()
+                .setSubject(String.valueOf(userId))
+                .setIssuedAt(now)
+                .setExpiration(expiry)
+                .signWith(key, SignatureAlgorithm.HS256) // 여기도 key
+                .compact();
+    }
 }

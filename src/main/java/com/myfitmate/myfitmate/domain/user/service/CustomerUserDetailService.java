@@ -1,6 +1,8 @@
 package com.myfitmate.myfitmate.domain.user.service;
 
+import com.myfitmate.myfitmate.domain.user.entity.User;
 import com.myfitmate.myfitmate.domain.user.repository.UserRepository;
+import com.myfitmate.myfitmate.security.UserDetailsImpl;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -23,8 +25,21 @@ public class CustomerUserDetailService implements UserDetailsService {
     }
 
     // 커스텀 메서드
-    public UserDetails loadUserById(Long userId) {
-        return userRepository.findById(userId)
+//    public UserDetails loadUserById(Long userId) {
+//        return userRepository.findById(userId)
+//                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+//    }
+
+
+    public UserDetailsImpl loadUserById(Long userId) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if (user.isDeleted()) {
+            throw new UsernameNotFoundException("User is deleted");
+        }
+
+        return new UserDetailsImpl(user);
     }
+
 }

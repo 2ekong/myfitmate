@@ -51,6 +51,13 @@ public class User implements UserDetails {
 
     private Float weightKg;
 
+    @Column(name = "is_deleted")
+    private boolean deleted;
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
     @Builder.Default
     private Goal goal = Goal.MAINTAIN;
 
