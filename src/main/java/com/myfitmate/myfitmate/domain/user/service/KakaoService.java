@@ -79,11 +79,11 @@ public class KakaoService {
             user.setPassword(""); // 카카오는 패스워드 없음
             user.setUsername("kakao_" + kakaoId);
             user.setRealName(nickname);
-            user.setBirthDate(LocalDate.of(1970, 1, 1));
-            user.setGender(Gender.OTHER);
-            user.setGoal(Goal.MAINTAIN);
-            user.setHeightCm(0f);
-            user.setWeightKg(0f);
+            user.setBirthDate(null);
+            user.setGender(null);
+            user.setGoal(null);
+            user.setHeightCm(null); // Of로 하면 float형 0.0이란 소리이다. 그럼 통계할때 말도 안 됨
+            user.setWeightKg(null);
 
             user = userRepository.save(user);
         }
