@@ -46,6 +46,4 @@ public class UserController {
         userService.deleteUser(userDetails.getUser().getId());
         return ResponseEntity.ok("회원 탈퇴 완료");
     }
-
-
 }
