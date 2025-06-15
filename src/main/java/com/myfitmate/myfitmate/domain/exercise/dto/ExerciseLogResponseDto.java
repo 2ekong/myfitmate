@@ -14,5 +14,5 @@ public class ExerciseLogResponseDto {
     private String exerciseName;
     private float durationMinutes;
     private float kcalBurned;
-    private LocalDateTime exercisedAt;
+    private LocalDateTime exerciseAt;
 }

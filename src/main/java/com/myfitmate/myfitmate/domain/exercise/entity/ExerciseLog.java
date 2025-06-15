@@ -32,4 +32,8 @@ public class ExerciseLog {
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
 }
