@@ -12,5 +12,5 @@ import java.time.LocalDateTime;
 public class ExerciseLogRequestDto {
     private Long exerciseId;
     private Float durationMinutes;
-    private LocalDateTime exercisedAt;
+    private LocalDateTime exerciseAt;
 }
