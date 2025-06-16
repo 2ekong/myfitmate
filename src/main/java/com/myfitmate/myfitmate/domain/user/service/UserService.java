@@ -9,7 +9,7 @@ import com.myfitmate.myfitmate.domain.user.entity.User;
 import com.myfitmate.myfitmate.domain.user.dto.SignupRequestDto;
 import com.myfitmate.myfitmate.domain.user.repository.TokenRepository;
 import com.myfitmate.myfitmate.domain.user.repository.UserRepository;
-import com.myfitmate.myfitmate.exception.CustomException;
+import com.myfitmate.myfitmate.domain.user.exception.CustomException;
 import com.myfitmate.myfitmate.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import static com.myfitmate.myfitmate.exception.ErrorCode.USER_NOT_FOUND;
+import static com.myfitmate.myfitmate.domain.user.exception.ErrorCode.USER_NOT_FOUND;
 
 @Service
 @RequiredArgsConstructor

@@ -1,4 +1,4 @@
-package com.myfitmate.myfitmate.exception;
+package com.myfitmate.myfitmate.domain.user.exception;
 
 public class CustomException extends RuntimeException {
     private final ErrorCode errorCode;
