@@ -1,4 +1,4 @@
-package com.myfitmate.myfitmate.exception;
+package com.myfitmate.myfitmate.domain.user.exception;
 
 public enum ErrorCode {
     USER_NOT_FOUND("사용자를 찾을 수 없습니다.");
