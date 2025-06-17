@@ -1,5 +1,6 @@
 package com.myfitmate.myfitmate.security;
 
+import com.myfitmate.myfitmate.domain.user.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -56,4 +57,9 @@ public class JwtUtil {
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
+
+    public String createAccessToken(User user) {
+        return createToken(user.getId(), user.getUsername());
+    }
+
 }

@@ -2,6 +2,7 @@ package com.myfitmate.myfitmate.domain.user.controller;
 
 import com.myfitmate.myfitmate.domain.user.dto.LoginRequestDto;
 import com.myfitmate.myfitmate.domain.user.dto.SignupRequestDto;
+import com.myfitmate.myfitmate.domain.user.dto.TokenResponseDto;
 import com.myfitmate.myfitmate.domain.user.entity.User;
 import com.myfitmate.myfitmate.domain.user.service.TokenService;
 import com.myfitmate.myfitmate.domain.user.service.UserService;
@@ -11,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("api/auth")
@@ -29,8 +32,8 @@ public class AutoController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody @Valid LoginRequestDto dto) {
-        String username = userService.login(dto);
-        return ResponseEntity.ok("로그인 성공" + username);
+        TokenResponseDto tokens = userService.login(dto);
+        return ResponseEntity.ok(tokens);
     }
 
     @PostMapping("/logout")
@@ -42,8 +45,7 @@ public class AutoController {
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(@RequestHeader("Authorization") String refreshTokenHeader) {
         String refreshToken = refreshTokenHeader.replace("Bearer ", "");
-        String newAccessToken = tokenService.refreshAccessToken(refreshToken);
-        return ResponseEntity.ok(newAccessToken);
+        TokenResponseDto newTokens = tokenService.refreshAllTokens(refreshToken);
+        return ResponseEntity.ok(newTokens);
     }
-
 }

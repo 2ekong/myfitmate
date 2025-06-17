@@ -3,6 +3,7 @@ package com.myfitmate.myfitmate.domain.user.service;
 import com.myfitmate.myfitmate.domain.user.Gender;
 import com.myfitmate.myfitmate.domain.user.Goal;
 import com.myfitmate.myfitmate.domain.user.dto.LoginRequestDto;
+import com.myfitmate.myfitmate.domain.user.dto.TokenResponseDto;
 import com.myfitmate.myfitmate.domain.user.dto.UpdateUserRequestDto;
 import com.myfitmate.myfitmate.domain.user.entity.Token;
 import com.myfitmate.myfitmate.domain.user.entity.User;
@@ -29,6 +30,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final TokenRepository tokenRepository;
+    private final TokenService tokenService;
 
     public long signup(SignupRequestDto dto) {
         if (userRepository.existsByUsername(dto.getUsername())) {
@@ -75,28 +77,23 @@ public class UserService {
         return userRepository.save(user).getId();
     }
 
-    public String login(LoginRequestDto dto) {
+    public TokenResponseDto login(LoginRequestDto dto) {
         User user = userRepository.findByUsername(dto.getUsername())
-                .orElseThrow(() -> new IllegalArgumentException("해당 아이디가 없습니다."));
+                .orElseThrow(() -> new RuntimeException("해당 아이디가 없습니다."));
 
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+            throw new RuntimeException("비밀번호가 일치하지 않습니다.");
         }
 
-        // ✅ Access / Refresh 토큰 생성
-        String accessToken = jwtUtil.createToken(user.getId(), user.getUsername());
+        String accessToken = jwtUtil.createAccessToken(user);
         String refreshToken = jwtUtil.createRefreshToken(user.getId());
 
-        // ✅ Refresh 토큰 DB 저장
-        Token token = Token.builder()
-                .user(user)
-                .refreshToken(refreshToken)
-                .expiredAt(LocalDateTime.now().plusWeeks(2))
-                .build();
-        tokenRepository.save(token);
+        tokenService.saveRefreshToken(user.getId(), refreshToken);
 
-        return accessToken; // 혹은 accessToken + refreshToken을 DTO로 묶어서 리턴해도 됨
+        return new TokenResponseDto(accessToken, refreshToken);
     }
+
+
 
 
     public void updateUser(User user, UpdateUserRequestDto dto) {
