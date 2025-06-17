@@ -2,6 +2,8 @@ package com.myfitmate.myfitmate.domain.meal.controller;
 
 import com.myfitmate.myfitmate.domain.meal.dto.MealLogDto;
 import com.myfitmate.myfitmate.domain.meal.entity.Meal;
+import com.myfitmate.myfitmate.domain.meal.exception.MealErrorCode;
+import com.myfitmate.myfitmate.domain.meal.exception.MealException;
 import com.myfitmate.myfitmate.domain.meal.repository.MealLogRepository;
 import com.myfitmate.myfitmate.domain.meal.service.MealService;
 import com.myfitmate.myfitmate.domain.meal.dto.MealRequestDto;
@@ -81,7 +83,8 @@ public class MealController {
     private Long extractUserId(HttpServletRequest request) {
         Object userIdAttr = request.getAttribute("userId");
         if (userIdAttr == null || !(userIdAttr instanceof Long)) {
-            throw new CustomException(ErrorCode.UNAUTHORIZED);
+            throw new MealException(MealErrorCode.UNAUTHORIZED_ACCESS);
+
         }
         return (Long) userIdAttr;
     }
