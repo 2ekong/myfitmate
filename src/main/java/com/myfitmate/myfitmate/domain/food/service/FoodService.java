@@ -19,7 +19,7 @@ public class FoodService {
 
     private final FoodRepository foodRepository;
 
-    public Long registerFood(FoodRequestDto dto, User user) {
+    public Food registerFood(FoodRequestDto dto, User user) {
         if (foodRepository.existsByName(dto.getName())) {
             throw new FoodException(FoodErrorCode.DUPLICATE_FOOD);
         }
@@ -36,7 +36,8 @@ public class FoodService {
                 .user(user)
                 .build();
 
-        return foodRepository.save(food).getId();
+        Food saved = foodRepository.save(food);
+        return saved;
     }
 
     public List<FoodResponseDto> getAllFoods(User user) {
