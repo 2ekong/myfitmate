@@ -21,11 +21,8 @@ public class MealRequestDto {
     @NotNull
     private List<FoodItem> foodList;
 
-    private boolean hasImage;
-
     public record FoodItem(
-            @NotNull
-            Long foodId,
+            @NotNull Long foodId,
             float quantity
-    ){}
+    ) {}
 }

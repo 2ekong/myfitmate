@@ -11,5 +11,5 @@ public class FoodRequestDto {
     private Float fat;
     private Float carbohydrate;
     private Float sodium;
-
+    private String referenceBasis;
 }
