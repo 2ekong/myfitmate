@@ -2,6 +2,7 @@ package com.myfitmate.myfitmate.domain.food.controller;
 
 import com.myfitmate.myfitmate.domain.food.dto.FoodRequestDto;
 import com.myfitmate.myfitmate.domain.food.dto.FoodResponseDto;
+import com.myfitmate.myfitmate.domain.food.entity.Food;
 import com.myfitmate.myfitmate.domain.food.service.FoodService;
 import com.myfitmate.myfitmate.domain.food.service.FoodOpenApiService;
 import com.myfitmate.myfitmate.security.UserDetailsImpl;
@@ -25,11 +26,12 @@ public class FoodController {
 
     @PostMapping
     public FoodResponseDto registerFood(@RequestBody @Valid FoodRequestDto dto,
-                                           @AuthenticationPrincipal UserDetailsImpl userDetails) {
+                                        @AuthenticationPrincipal UserDetailsImpl userDetails) {
         User user = userDetails.getUser();
-        Long foodId = foodService.registerFood(dto, user);
-        return FoodResponseDto.ok("음식 등록 성공. ID: " + foodId);
+        Food savedFood = foodService.registerFood(dto, user);
+        return FoodResponseDto.fromEntity(savedFood);
     }
+
 
     @GetMapping
     public List<FoodResponseDto> getAllFoods(@AuthenticationPrincipal UserDetailsImpl userDetails) {
