@@ -15,6 +15,7 @@ public enum FoodErrorCode {
     FOOD_REGISTER_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "음식 등록 실패"),
     FOOD_DELETE_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "음식 삭제 실패");
 
+
     private final HttpStatus status;
     private final String message;
 }

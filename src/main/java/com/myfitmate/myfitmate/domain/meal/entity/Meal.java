@@ -2,49 +2,43 @@ package com.myfitmate.myfitmate.domain.meal.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Getter
 @Setter
 @Builder
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 public class Meal {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long userId; //  User 대신 ID만 사용
+    private Long userId;
 
     private LocalDateTime eatTime;
 
     @Enumerated(EnumType.STRING)
     private MealType mealType;
 
-    private Float totalCalories;
-
-    private Boolean hasImage;
-
-    private Integer version;
+    private float totalCalories;
 
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "meal", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<MealFood> mealFoods = new ArrayList<>();
+    private boolean hasImage;
 
-    public void addMealFood(Long foodId, Float quantity, Float calories) {
-        MealFood mealFood = MealFood.builder()
-                .meal(this)
-                .foodId(foodId)
-                .quantity(quantity)
-                .calories(calories)
-                .build();
-        this.mealFoods.add(mealFood);
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 }

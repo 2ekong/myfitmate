@@ -5,15 +5,10 @@ import lombok.Getter;
 @Getter
 public class MealException extends RuntimeException {
 
-    private final MealErrorCode errorCode;
+    private final ErrorCode errorCode;
 
-    public MealException(MealErrorCode errorCode) {
+    public MealException(ErrorCode errorCode) {
         super(errorCode.getMessage());
-        this.errorCode = errorCode;
-    }
-
-    public MealException(MealErrorCode errorCode, Throwable cause) {
-        super(errorCode.getMessage(), cause);
         this.errorCode = errorCode;
     }
 }

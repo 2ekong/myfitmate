@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface MealLogRepository extends JpaRepository<MealLog, Long> {
-    List<MealLog> findByMealIdOrderByActionTimeDesc(Long mealId);
+    List<MealLog> findByMealId(Long mealId);
 }

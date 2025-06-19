@@ -4,26 +4,23 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@IdClass(MealFoodId.class)
 @Getter
+@Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-@Table(name = "meal_food")
+@IdClass(MealFoodId.class)
 public class MealFood {
 
     @Id
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "meal_id", nullable = false)
+    @JoinColumn(name = "meal_id")
     private Meal meal;
 
     @Id
-    @Column(name = "food_id", nullable = false)
     private Long foodId;
 
-    @Column(nullable = false)
-    private Float quantity;
+    private float quantity;
 
-    @Column(nullable = false)
-    private Float calories;
+    private float calories;
 }

@@ -1,91 +1,92 @@
 package com.myfitmate.myfitmate.domain.meal.controller;
 
-import com.myfitmate.myfitmate.domain.meal.dto.MealLogDto;
-import com.myfitmate.myfitmate.domain.meal.entity.Meal;
-import com.myfitmate.myfitmate.domain.meal.exception.MealErrorCode;
-import com.myfitmate.myfitmate.domain.meal.exception.MealException;
-import com.myfitmate.myfitmate.domain.meal.repository.MealLogRepository;
-import com.myfitmate.myfitmate.domain.meal.service.MealService;
 import com.myfitmate.myfitmate.domain.meal.dto.MealRequestDto;
 import com.myfitmate.myfitmate.domain.meal.dto.MealResponseDto;
-import jakarta.persistence.EntityNotFoundException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
+import com.myfitmate.myfitmate.domain.meal.exception.ErrorCode;
+import com.myfitmate.myfitmate.domain.meal.service.MealService;
+import com.myfitmate.myfitmate.domain.meal.exception.MealException;
+import com.myfitmate.myfitmate.domain.user.entity.User;
+import com.myfitmate.myfitmate.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/meals")
 @RequiredArgsConstructor
+@RequestMapping("/api/meals")
 public class MealController {
 
     private final MealService mealService;
-    private final MealLogRepository mealLogRepository;
+    private final UserRepository userRepository;
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<MealResponseDto> registerMeal(
-            @RequestPart("dto") @Valid MealRequestDto dto,
-            @RequestPart(value = "image", required = false) MultipartFile image,
-            HttpServletRequest request
-    ) {
-        Long userId = extractUserId(request);
-        MealResponseDto response = mealService.registerMeal(dto, userId, image);
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new MealException(ErrorCode.UNAUTHORIZED_ACCESS));
+        return user.getId();
+    }
+
+    @PostMapping
+    public ResponseEntity<MealResponseDto> registerMeal(@RequestBody MealRequestDto dto) {
+        Long userId = getCurrentUserId();
+        MealResponseDto response = mealService.registerMeal(dto, userId, null);
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/day")
-    public ResponseEntity<List<MealResponseDto>> getMealsByDay(
-            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            HttpServletRequest request
-    ) {
-        Long userId = extractUserId(request);
-        List<MealResponseDto> meals = mealService.getMealsByDay(userId, date);
+    @GetMapping
+    public ResponseEntity<List<MealResponseDto>> getAllMeals() {
+        Long userId = getCurrentUserId();
+        List<MealResponseDto> meals = mealService.getAllMeals(userId);
         return ResponseEntity.ok(meals);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<MealResponseDto> getMealById(@PathVariable Long id, HttpServletRequest request) {
-        Long userId = extractUserId(request);
-        Meal meal = mealService.getMealById(id)
-                .orElseThrow(() -> new EntityNotFoundException("해당 식단이 존재하지 않습니다."));
-
-        if (!meal.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("본인의 식단만 조회할 수 있습니다.");
-        }
-
-        MealResponseDto dto = mealService.convertToDto(meal);
-        return ResponseEntity.ok(dto);
+    @GetMapping("/{mealId}")
+    public ResponseEntity<MealResponseDto> getMealById(@PathVariable Long mealId) {
+        Long userId = getCurrentUserId();
+        MealResponseDto response = mealService.getMealById(mealId, userId);
+        return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteMeal(@PathVariable Long id, HttpServletRequest request) {
-        Long userId = extractUserId(request);
-        mealService.deleteMealById(id, userId);
-        return ResponseEntity.noContent().build();
+
+    @GetMapping("/day")
+    public ResponseEntity<List<MealResponseDto>> getMealsByDay(@RequestParam("date") String date) {
+        Long userId = getCurrentUserId();
+        LocalDate parsedDate = LocalDate.parse(date);
+        List<MealResponseDto> meals = mealService.getMealsByDay(userId, parsedDate);
+        return ResponseEntity.ok(meals);
     }
 
-    @GetMapping("/{mealId}/logs")
-    public ResponseEntity<List<MealLogDto>> getMealLogs(@PathVariable Long mealId) {
-        List<MealLogDto> logs = mealLogRepository.findByMealIdOrderByActionTimeDesc(mealId).stream()
-                .map(MealLogDto::fromEntity)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(logs);
+    @PutMapping("/{mealId}")
+    public ResponseEntity<MealResponseDto> updateMeal(@PathVariable Long mealId,
+                                                      @RequestBody MealRequestDto dto) {
+        Long userId = getCurrentUserId();
+        MealResponseDto response = mealService.updateMeal(mealId, userId, dto);
+        return ResponseEntity.ok(response);
     }
 
-    private Long extractUserId(HttpServletRequest request) {
-        Object userIdAttr = request.getAttribute("userId");
-        if (userIdAttr == null || !(userIdAttr instanceof Long)) {
-            throw new MealException(MealErrorCode.UNAUTHORIZED_ACCESS);
-
-        }
-        return (Long) userIdAttr;
+    @DeleteMapping("/{mealId}")
+    public ResponseEntity<Void> deleteMeal(@PathVariable Long mealId) {
+        Long userId = getCurrentUserId();
+        mealService.deleteMealById(mealId, userId);
+        return ResponseEntity.ok().build();
     }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<MealResponseDto> registerMeal(
+            @RequestPart("dto") MealRequestDto dto,
+            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
+
+        Long userId = getCurrentUserId();
+        MealResponseDto response = mealService.registerMeal(dto, userId, imageFile);
+        return ResponseEntity.ok(response);
+    }
+
 }

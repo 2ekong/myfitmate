@@ -1,6 +1,5 @@
 package com.myfitmate.myfitmate.domain.meal.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myfitmate.myfitmate.domain.food.entity.Food;
 import com.myfitmate.myfitmate.domain.food.repository.FoodRepository;
 import com.myfitmate.myfitmate.domain.meal.dto.MealRequestDto;
@@ -10,29 +9,25 @@ import com.myfitmate.myfitmate.domain.meal.entity.Meal;
 import com.myfitmate.myfitmate.domain.meal.entity.MealFood;
 import com.myfitmate.myfitmate.domain.meal.entity.MealImage;
 import com.myfitmate.myfitmate.domain.meal.entity.MealLog;
-import com.myfitmate.myfitmate.domain.meal.exception.MealErrorCode;
+import com.myfitmate.myfitmate.domain.meal.exception.ErrorCode;
 import com.myfitmate.myfitmate.domain.meal.exception.MealException;
 import com.myfitmate.myfitmate.domain.meal.repository.MealFoodRepository;
 import com.myfitmate.myfitmate.domain.meal.repository.MealImageRepository;
 import com.myfitmate.myfitmate.domain.meal.repository.MealLogRepository;
 import com.myfitmate.myfitmate.domain.meal.repository.MealRepository;
+import com.myfitmate.myfitmate.domain.meal.util.FileStorageUtil;
+import com.myfitmate.myfitmate.domain.user.entity.User;
 import com.myfitmate.myfitmate.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,223 +36,183 @@ import java.util.stream.Collectors;
 public class MealService {
 
     private final MealRepository mealRepository;
+    private final MealFoodRepository mealFoodRepository;
     private final FoodRepository foodRepository;
     private final UserRepository userRepository;
-    private final MealFoodRepository mealFoodRepository;
-    private final MealImageRepository mealImageRepository;
     private final MealLogRepository mealLogRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final MealImageRepository mealImageRepository;
 
     public MealResponseDto registerMeal(MealRequestDto dto, Long userId, MultipartFile imageFile) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new MealException(MealErrorCode.USER_NOT_FOUND));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new MealException(ErrorCode.UNAUTHORIZED_ACCESS));
 
-        LocalDate date = dto.getEatTime().toLocalDate();
-        LocalDateTime startOfDay = date.atStartOfDay();
-        LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
+        LocalDateTime eatTime = dto.getEatTime();
+        LocalDateTime startOfDay = eatTime.toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = eatTime.toLocalDate().atTime(LocalTime.MAX);
 
         boolean exists = mealRepository.existsByUserIdAndEatTimeBetweenAndMealType(
                 userId, startOfDay, endOfDay, dto.getMealType());
 
         if (exists) {
-            throw new MealException(MealErrorCode.DUPLICATE_MEAL);
+            throw new MealException(ErrorCode.DUPLICATE_MEAL);
         }
 
         Meal meal = Meal.builder()
                 .userId(userId)
                 .eatTime(dto.getEatTime())
                 .mealType(dto.getMealType())
-                .hasImage(imageFile != null && !imageFile.isEmpty())
                 .totalCalories(0f)
+                .hasImage(false)
                 .build();
 
-        float totalCalories = 0f;
+        Meal savedMeal = mealRepository.save(meal);
 
+        float totalCalories = 0f;
         for (MealRequestDto.FoodItem item : dto.getFoodList()) {
             Food food = foodRepository.findById(item.foodId())
-                    .orElseThrow(() -> new MealException(MealErrorCode.FOOD_NOT_FOUND));
+                    .orElseThrow(() -> new MealException(ErrorCode.FOOD_NOT_FOUND));
 
-            float calories = food.getCalories() * (item.quantity() / food.getStandardAmount());
-            totalCalories += calories;
-            meal.addMealFood(item.foodId(), item.quantity(), calories);
+            Float std = food.getStandardAmount();
+            if (std == null || std == 0f) {
+                throw new MealException(ErrorCode.INVALID_FOOD_STANDARD);
+            }
+
+            float cal = food.getCalories() * (item.quantity() / std);
+            totalCalories += cal;
+
+            MealFood mealFood = MealFood.builder()
+                    .meal(savedMeal)
+                    .foodId(item.foodId())
+                    .quantity(item.quantity())
+                    .calories(cal)
+                    .build();
+
+            mealFoodRepository.save(mealFood);
         }
 
-        meal.setTotalCalories(totalCalories);
-        Meal savedMeal = mealRepository.save(meal);
+        savedMeal.setTotalCalories(totalCalories);
 
         if (imageFile != null && !imageFile.isEmpty()) {
             try {
-                String uploadDir = "src/main/resources/static/uploads/meal-images/";
-                String fileName = "meal_" + savedMeal.getId() + "_" + System.currentTimeMillis() + ".jpg";
-                Path filePath = Paths.get(uploadDir + fileName);
-
-                File dir = new File(uploadDir);
-                if (!dir.exists() && !dir.mkdirs()) {
-                    throw new MealException(MealErrorCode.IMAGE_DIRECTORY_CREATE_FAIL);
-                }
-
-                Files.write(filePath, imageFile.getBytes());
-                String imageUrl = "/uploads/meal-images/" + fileName;
+                String imagePath = FileStorageUtil.saveImage(imageFile, "meal-images");
+                String hash = FileStorageUtil.generateFileHash(imageFile);
 
                 MealImage mealImage = MealImage.builder()
-                        .mealId(savedMeal.getId())
-                        .filePath(imageUrl)
-                        .hash(String.valueOf(imageFile.hashCode()))
+                        .meal(savedMeal)
+                        .filePath(imagePath)
+                        .hash(hash)
                         .build();
+
                 mealImageRepository.save(mealImage);
-
+                savedMeal.setHasImage(true);
             } catch (IOException e) {
-                throw new MealException(MealErrorCode.IMAGE_SAVE_FAIL, e);
+                throw new MealException(ErrorCode.FILE_UPLOAD_FAILED);
             }
-        }
-
-        try {
-            MealLog mealLog = MealLog.builder()
-                    .mealId(savedMeal.getId())
-                    .userId(userId)
-                    .action(MealLog.ActionType.CREATE)
-                    .snapshot(objectMapper.writeValueAsString(savedMeal))
-                    .actionTime(LocalDateTime.now())
-                    .build();
-            mealLogRepository.save(mealLog);
-        } catch (Exception e) {
-            throw new MealException(MealErrorCode.LOG_SAVE_FAIL, e);
         }
 
         return convertToDto(savedMeal);
     }
 
-    public List<MealResponseDto> getMealsByDay(Long userId, LocalDate date) {
-        LocalDateTime start = date.atStartOfDay();
-        LocalDateTime end = date.atTime(LocalTime.MAX);
-
-        List<Meal> meals = mealRepository.findByUserIdAndEatTimeBetweenOrderByEatTimeAsc(userId, start, end);
+    public List<MealResponseDto> getAllMeals(Long userId) {
+        List<Meal> meals = mealRepository.findByUserIdOrderByEatTimeDesc(userId);
         return meals.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
 
-    public Optional<Meal> getMealById(Long id) {
-        return mealRepository.findById(id);
-    }
-
-    public MealResponseDto updateMeal(Long mealId, Long userId, MealRequestDto dto) {
-        Meal meal = mealRepository.findById(mealId)
-                .orElseThrow(() -> new MealException(MealErrorCode.MEAL_NOT_FOUND));
-
-        if (!meal.getUserId().equals(userId)) {
-            throw new MealException(MealErrorCode.UNAUTHORIZED_ACCESS);
-        }
-
-        meal.setMealType(dto.getMealType());
-        meal.setEatTime(dto.getEatTime());
-
-        mealFoodRepository.deleteByMealId(meal.getId());
-
-        List<MealFood> newMealFoods = new ArrayList<>();
-        float totalCalories = 0f;
-
-        for (MealRequestDto.FoodItem item : dto.getFoodList()) {
-            Food food = foodRepository.findById(item.foodId())
-                    .orElseThrow(() -> new MealException(MealErrorCode.FOOD_NOT_FOUND));
-
-            float calories = food.getCalories() * (item.quantity() / food.getStandardAmount());
-
-            MealFood mealFood = MealFood.builder()
-                    .meal(meal)
-                    .foodId(food.getId())
-                    .quantity(item.quantity())
-                    .calories(calories)
-                    .build();
-
-            newMealFoods.add(mealFood);
-            totalCalories += calories;
-        }
-
-        meal.setMealFoods(newMealFoods);
-        meal.setTotalCalories(totalCalories);
-
-        mealRepository.save(meal);
-
-        try {
-            MealLog mealLog = MealLog.builder()
-                    .mealId(meal.getId())
-                    .userId(userId)
-                    .action(MealLog.ActionType.UPDATE)
-                    .snapshot(objectMapper.writeValueAsString(meal))
-                    .actionTime(LocalDateTime.now())
-                    .build();
-            mealLogRepository.save(mealLog);
-        } catch (Exception e) {
-            throw new MealException(MealErrorCode.LOG_SAVE_FAIL, e);
-        }
-
-        return convertToDto(meal);
-    }
-
     public MealResponseDto convertToDto(Meal meal) {
-        List<FoodDetail> foodList = meal.getMealFoods().stream()
-                .map(mf -> {
-                    String foodName = foodRepository.findById(mf.getFoodId())
-                            .map(Food::getName)
-                            .orElse("Unknown");
-                    return new FoodDetail(
-                            mf.getFoodId(),
-                            foodName,
-                            mf.getQuantity(),
-                            mf.getCalories()
-                    );
-                }).collect(Collectors.toList());
-
-        String imageUrl = meal.getHasImage() != null && meal.getHasImage()
-                ? mealImageRepository.findByMealId(meal.getId())
-                .map(MealImage::getFilePath)
-                .orElse(null)
-                : null;
+        List<MealFood> mealFoods = mealFoodRepository.findByMealId(meal.getId());
+        List<FoodDetail> foodList = mealFoods.stream().map(mf -> {
+            String name = foodRepository.findById(mf.getFoodId())
+                    .map(Food::getName)
+                    .orElse("unknown");
+            return new FoodDetail(mf.getFoodId(), name, mf.getQuantity(), mf.getCalories());
+        }).collect(Collectors.toList());
 
         return new MealResponseDto(
                 meal.getId(),
                 meal.getEatTime(),
                 meal.getMealType(),
                 meal.getTotalCalories(),
-                meal.getHasImage(),
-                foodList,
-                imageUrl
+                foodList
         );
+    }
+
+    public MealResponseDto getMealById(Long mealId, Long userId) {
+        Meal meal = mealRepository.findById(mealId)
+                .orElseThrow(() -> new MealException(ErrorCode.MEAL_NOT_FOUND));
+
+        if (!userId.equals(meal.getUserId().longValue())) {
+            throw new MealException(ErrorCode.UNAUTHORIZED_ACCESS);
+        }
+
+        return convertToDto(meal);
+    }
+
+    public List<MealResponseDto> getMealsByDay(Long userId, LocalDate date) {
+        LocalDateTime start = date.atStartOfDay();
+        LocalDateTime end = date.atTime(LocalTime.MAX);
+        return mealRepository.findByUserIdAndEatTimeBetweenOrderByEatTimeAsc(userId, start, end)
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
 
     public void deleteMealById(Long id, Long userId) {
         Meal meal = mealRepository.findById(id)
-                .orElseThrow(() -> new MealException(MealErrorCode.MEAL_NOT_FOUND));
+                .orElseThrow(() -> new MealException(ErrorCode.MEAL_NOT_FOUND));
 
         if (!meal.getUserId().equals(userId)) {
-            throw new MealException(MealErrorCode.UNAUTHORIZED_ACCESS);
+            throw new MealException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
 
-        if (meal.getHasImage() != null && meal.getHasImage()) {
-            mealImageRepository.findByMealId(meal.getId()).ifPresent(image -> {
-                String path = "src/main/resources/static" + image.getFilePath();
-                try {
-                    Files.deleteIfExists(Paths.get(path));
-                } catch (IOException e) {
-                    throw new MealException(MealErrorCode.IMAGE_SAVE_FAIL, e);
-                }
-            });
-        }
-
+        mealFoodRepository.deleteByMealId(id);
         mealRepository.delete(meal);
+    }
 
-        try {
-            MealLog mealLog = MealLog.builder()
-                    .mealId(meal.getId())
-                    .userId(userId)
-                    .action(MealLog.ActionType.DELETE)
-                    .snapshot(objectMapper.writeValueAsString(meal))
-                    .actionTime(LocalDateTime.now())
-                    .build();
-            mealLogRepository.save(mealLog);
-        } catch (Exception e) {
-            throw new MealException(MealErrorCode.LOG_SAVE_FAIL, e);
+    public MealResponseDto updateMeal(Long mealId, Long userId, MealRequestDto dto) {
+        Meal meal = mealRepository.findById(mealId)
+                .orElseThrow(() -> new MealException(ErrorCode.MEAL_NOT_FOUND));
+
+        if (!meal.getUserId().equals(userId)) {
+            throw new MealException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
+
+        meal.setEatTime(dto.getEatTime());
+        meal.setMealType(dto.getMealType());
+        mealFoodRepository.deleteByMealId(mealId);
+
+        float totalCalories = 0f;
+        for (MealRequestDto.FoodItem item : dto.getFoodList()) {
+            Food food = foodRepository.findById(item.foodId())
+                    .orElseThrow(() -> new MealException(ErrorCode.FOOD_NOT_FOUND));
+            Float std = food.getStandardAmount();
+            if (std == null || std == 0f) throw new MealException(ErrorCode.INVALID_FOOD_STANDARD);
+
+            float cal = food.getCalories() * (item.quantity() / std);
+            totalCalories += cal;
+
+            MealFood mealFood = MealFood.builder()
+                    .meal(meal)
+                    .foodId(item.foodId())
+                    .quantity(item.quantity())
+                    .calories(cal)
+                    .build();
+            mealFoodRepository.save(mealFood);
+        }
+
+        meal.setTotalCalories(totalCalories);
+        return convertToDto(meal);
+    }
+
+    private void saveMealLog(Meal meal, Long userId, MealLog.ActionType actionType) {
+        MealLog log = MealLog.builder()
+                .mealId(meal.getId())
+                .userId(userId)
+                .actionType(actionType)
+                .mealType(meal.getMealType())
+                .actionTime(LocalDateTime.now())
+                .build();
+        mealLogRepository.save(log);
     }
 }

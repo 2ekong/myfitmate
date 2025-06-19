@@ -9,13 +9,13 @@ public class FoodResponseDto {
 
     private Long id;
     private String name;
-    private double calories;
-    private double carbohydrate;
-    private double protein;
-    private double fat;
+    private Float calories;
+    private Float carbohydrate;
+    private Float protein;
+    private Float fat;
 
     @Builder
-    public FoodResponseDto(Long id, String name, double calories, double carbohydrate, double protein, double fat) {
+    public FoodResponseDto(Long id, String name, Float calories, Float carbohydrate, Float protein, Float fat) {
         this.id = id;
         this.name = name;
         this.calories = calories;
@@ -34,4 +34,16 @@ public class FoodResponseDto {
                 .fat(food.getFat())
                 .build();
     }
+
+    public static FoodResponseDto ok(String message) {
+        return FoodResponseDto.builder()
+                .id(null)
+                .name(message)
+                .calories(0f)
+                .carbohydrate(0f)
+                .protein(0f)
+                .fat(0f)
+                .build();
+    }
+
 }
