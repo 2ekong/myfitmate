@@ -1,14 +1,14 @@
 package com.myfitmate.myfitmate.domain.meal.entity;
 
+import com.myfitmate.myfitmate.domain.food.entity.Food;
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
 @Getter
-@Setter
-@Builder
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+@Builder
 @IdClass(MealFoodId.class)
 public class MealFood {
 
@@ -18,7 +18,9 @@ public class MealFood {
     private Meal meal;
 
     @Id
-    private Long foodId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "food_id")
+    private Food food;
 
     private float quantity;
 
