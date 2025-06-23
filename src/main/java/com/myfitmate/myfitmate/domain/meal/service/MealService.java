@@ -60,6 +60,14 @@ public class MealService {
         return toResponse(meal);
     }
 
+    // 식단 조회
+    @Transactional(readOnly = true)
+    public MealResponseDto getMealById(Long mealId, Long userId) {
+        Meal meal = getAuthorizedMeal(mealId, userId);
+        return toResponse(meal);
+    }
+
+
     // 식단 수정
     @Transactional
     public MealResponseDto updateMeal(Long mealId, MealRequestDto dto, MultipartFile imageFile, Long userId) {
