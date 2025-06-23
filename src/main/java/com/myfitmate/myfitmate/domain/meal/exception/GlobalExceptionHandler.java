@@ -1,5 +1,6 @@
 package com.myfitmate.myfitmate.domain.meal.exception;
 
+import lombok.Getter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -15,22 +16,15 @@ public class GlobalExceptionHandler {
                 .body(errorResponse);
     }
 
-    // 내부 static 클래스로 정의 (별도 파일 없음)
+
+    @Getter
     private static class ErrorResponse {
         private final String message;
         private final int status;
 
-        public ErrorResponse(ErrorCode errorCode) {
+        public ErrorResponse(MealErrorCode errorCode) {
             this.message = errorCode.getMessage();
             this.status = errorCode.getStatus().value();
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        public int getStatus() {
-            return status;
         }
     }
 }
