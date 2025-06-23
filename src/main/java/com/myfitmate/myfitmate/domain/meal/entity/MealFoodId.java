@@ -8,7 +8,7 @@ import java.io.Serializable;
 public class MealFoodId implements Serializable {
 
     private Long meal;
-    private Long foodId;
+    private Long food;
 
     public MealFoodId() {}
 }
