@@ -27,6 +27,14 @@ public class MealController {
         return ResponseEntity.ok(mealService.registerMeal(dto, userDetails.getUser().getId(), imageFile));
     }
 
+    @GetMapping("/{mealId}")
+    public ResponseEntity<MealResponseDto> getMealById(
+            @PathVariable Long mealId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        return ResponseEntity.ok(mealService.getMealById(mealId, userDetails.getUser().getId()));
+    }
+
+
     @PutMapping("/{mealId}")
     public ResponseEntity<MealResponseDto> updateMeal(
             @PathVariable Long mealId,

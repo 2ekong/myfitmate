@@ -1,19 +1,16 @@
 package com.myfitmate.myfitmate.domain.food.service;
 
-import com.myfitmate.myfitmate.domain.food.entity.Food;
-import com.myfitmate.myfitmate.domain.food.repository.FoodRepository;
-import com.myfitmate.myfitmate.domain.user.entity.User;
-import com.opencsv.CSVReader;
-import com.opencsv.CSVReaderBuilder;
-import com.opencsv.CSVParserBuilder;
+import com.myfitmate.myfitmate.domain.food.dto.FoodCsvDto;
+import com.opencsv.bean.CsvToBeanBuilder;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Slf4j
@@ -21,95 +18,82 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FoodCsvService {
 
-    private final FoodRepository foodRepository;
+    private List<FoodCsvDto> cachedCsvFoods;
 
-    public List<Food> readFoodListFromCsv(MultipartFile file) {
-        return parseCsv(file, null);
-    }
-
-    public void importFoodDataFromCsv(MultipartFile file, User user) {
-        List<Food> foodList = parseCsv(file, user);
-        foodRepository.saveAll(foodList);
-    }
-
-    private List<Food> parseCsv(MultipartFile file, User user) {
-        try (
-                CSVReader reader = new CSVReaderBuilder(
-                        new InputStreamReader(file.getInputStream(), Charset.forName("EUC-KR")))
-                        .withCSVParser(new CSVParserBuilder().withSeparator(',').build())
-                        .build()
-        ) {
-            List<Food> foodList = new ArrayList<>();
-            String[] line;
-            boolean isFirst = true;
-            int lineNumber = 1;
-
-            while ((line = reader.readNext()) != null) {
-                lineNumber++;
-                if (isFirst) {
-                    isFirst = false;
-                    continue;
-                }
-
-                log.debug("📄 [줄 {}] 전체 내용: {}", lineNumber, String.join(" | ", line));
-
-                try {
-                    Food food = Food.builder()
-                            .name(getRequiredValue(line, 1, "식품명", lineNumber))
-                            .originCategory(getRequiredValue(line, 7, "대분류", lineNumber))
-                            .originSubCategory(getRequiredValue(line, 11, "중분류", lineNumber))
-                            .originDetailCategory(getRequiredValue(line, 13, "소분류", lineNumber))
-                            .standardAmount(parseFloatSafe(line, 16, "기준량", lineNumber))
-                            .calories(parseFloatSafe(line, 17, "칼로리", lineNumber))
-                            .protein(parseFloatSafe(line, 19, "단백질", lineNumber))
-                            .fat(parseFloatSafe(line, 20, "지방", lineNumber))
-                            .carbohydrate(parseFloatSafe(line, 22, "탄수화물", lineNumber))
-                            .sodium(parseFloatSafe(line, 29, "나트륨", lineNumber))
-                            .referenceBasis("per 기준량")
-                            .user(user)
-                            .build();
-
-                    foodList.add(food);
-
-                } catch (Exception e) {
-                    log.error("❌ [{}번째 줄 오류] {}", lineNumber, e.getMessage());
-                }
+    @PostConstruct
+    public void loadCsvData() {
+        try {
+            // ✅ CSV 경로 설정
+            String path = "data/전국통합식품영양성분정보_음식_표준데이터.csv";
+            InputStream is = getClass().getClassLoader().getResourceAsStream(path);
+            if (is == null) {
+                throw new RuntimeException("📛 CSV 파일을 찾을 수 없습니다: " + path);
             }
 
-            return foodList;
+            InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
+            BufferedReader bufferedReader = new BufferedReader(reader);
+
+            // ✅ 첫 줄 (헤더) 확인 로그
+            bufferedReader.mark(10000); // mark/reset 가능하게
+            String headerLine = bufferedReader.readLine();
+            log.info("📌 CSV 헤더 확인: {}", headerLine);
+            bufferedReader.reset(); // 다시 처음부터 읽을 수 있게
+
+            // ✅ CsvToBeanBuilder로 파싱
+            cachedCsvFoods = new CsvToBeanBuilder<FoodCsvDto>(bufferedReader)
+                    .withType(FoodCsvDto.class)
+                    .withIgnoreLeadingWhiteSpace(true)
+                    .build()
+                    .parse();
+
+            log.info("✅ CSV 음식 데이터 총 {}건 로딩 완료", cachedCsvFoods.size());
+
+            // ✅ 상위 10개 샘플 출력
+            for (int i = 0; i < Math.min(10, cachedCsvFoods.size()); i++) {
+                FoodCsvDto food = cachedCsvFoods.get(i);
+                log.info("✔️ [{}] {} | kcal={} | fat={} | sodium={} | stdAmt={}",
+                        i + 1, food.getName(), food.getCalories(),
+                        food.getFat(), food.getSodium(), food.getStandardAmount());
+            }
+
+            // ✅ null 포함 항목 출력
+            cachedCsvFoods.stream()
+                    .filter(f -> f.getCalories() == null || f.getFat() == null || f.getSodium() == null || f.getStandardAmount() == null)
+                    .limit(10)
+                    .forEach(f -> log.warn("⚠️ 누락 데이터 → name={} | kcal={} | fat={} | sodium={} | stdAmt={}",
+                            f.getName(), f.getCalories(), f.getFat(), f.getSodium(), f.getStandardAmount()));
 
         } catch (Exception e) {
-            throw new RuntimeException("CSV 파싱 실패: " + e.getMessage(), e);
+            log.error("❌ CSV 로딩 실패: {}", e.getMessage(), e);
+            throw new RuntimeException("CSV 파싱 실패", e);
         }
     }
 
-    private String getRequiredValue(String[] line, int index, String fieldName, int lineNumber) {
-        if (line.length <= index || isBlank(line[index])) {
-            String msg = "필수값 누락: " + fieldName + " (index=" + index + ")";
-            log.warn("⚠️ [줄 {}] {}", lineNumber, msg);
-            throw new RuntimeException(msg);
-        }
-        log.debug("✅ [줄 {}] {} = {}", lineNumber, fieldName, line[index].trim());
-        return line[index].trim();
+    // ✅ 전체 조회
+    public List<FoodCsvDto> getAllFoods() {
+        return cachedCsvFoods;
     }
 
-    private Float parseFloatSafe(String[] line, int index, String fieldName, int lineNumber) {
-        try {
-            if (line.length <= index || isBlank(line[index])) {
-                log.warn("⚠️ [줄 {}] {} 값 없음 (index={})", lineNumber, fieldName, index);
-                return null;
-            }
-            String raw = line[index].trim().replace(",", "");
-            Float value = Float.parseFloat(raw);
-            log.debug("✅ [줄 {}] {} = {}", lineNumber, fieldName, value);
-            return value;
-        } catch (NumberFormatException e) {
-            log.warn("⚠️ [줄 {}] {} 숫자 파싱 실패: '{}'", lineNumber, fieldName, line[index]);
-            return null;
+    // ✅ 키워드 검색 (다중 필드 포함)
+    public List<FoodCsvDto> searchFoods(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return cachedCsvFoods;
         }
-    }
+        String lowerKeyword = keyword.toLowerCase();
 
-    private boolean isBlank(String s) {
-        return s == null || s.trim().isEmpty();
+        List<FoodCsvDto> results = cachedCsvFoods.stream()
+                .filter(f ->
+                        (f.getName() != null && f.getName().toLowerCase().contains(lowerKeyword)) ||
+                                (f.getOriginCategory() != null && f.getOriginCategory().toLowerCase().contains(lowerKeyword)) ||
+                                (f.getOriginSubCategory() != null && f.getOriginSubCategory().toLowerCase().contains(lowerKeyword)) ||
+                                (f.getOriginDetailCategory() != null && f.getOriginDetailCategory().toLowerCase().contains(lowerKeyword)) ||
+                                (f.getCode() != null && f.getCode().toLowerCase().contains(lowerKeyword)) ||
+                                (f.getSource() != null && f.getSource().toLowerCase().contains(lowerKeyword)) ||
+                                (f.getManufacturer() != null && f.getManufacturer().toLowerCase().contains(lowerKeyword))
+                )
+                .toList();
+
+        log.info("🔍 '{}' 검색 결과: {}건", keyword, results.size());
+        return results;
     }
 }

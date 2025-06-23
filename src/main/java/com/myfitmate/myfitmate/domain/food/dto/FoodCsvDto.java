@@ -1,8 +1,6 @@
 package com.myfitmate.myfitmate.domain.food.dto;
 
 import com.opencsv.bean.CsvBindByName;
-import com.opencsv.bean.CsvCustomBindByName;
-import com.opencsv.bean.AbstractBeanField;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -22,39 +20,39 @@ public class FoodCsvDto {
     @CsvBindByName(column = "식품소분류명")
     private String originDetailCategory;
 
-    @CsvCustomBindByName(column = "영양성분함량기준량", converter = NullableFloatConverter.class)
-    private Float standardAmount;
+    @CsvBindByName(column = "1회 섭취참고량")
+    private String standardAmount;
 
-    @CsvCustomBindByName(column = "에너지(kcal)", converter = NullableFloatConverter.class)
-    private Float calories;
+    @CsvBindByName(column = "에너지(kcal)")
+    private String calories;
 
-    @CsvCustomBindByName(column = "단백질(g)", converter = NullableFloatConverter.class)
-    private Float protein;
+    @CsvBindByName(column = "탄수화물(g)")
+    private String carbohydrate;
 
-    @CsvCustomBindByName(column = "지방(g)", converter = NullableFloatConverter.class)
-    private Float fat;
+    @CsvBindByName(column = "단백질(g)")
+    private String protein;
 
-    @CsvCustomBindByName(column = "탄수화물(g)", converter = NullableFloatConverter.class)
-    private Float carbohydrate;
+    @CsvBindByName(column = "지방(g)")
+    private String fat;
 
-    @CsvCustomBindByName(column = "나트륨(mg)", converter = NullableFloatConverter.class)
-    private Float sodium;
+    @CsvBindByName(column = "나트륨(mg)")
+    private String sodium;
 
-    @CsvBindByName(column = "영양성분함량기준")
-    private String referenceBasis;
+    @CsvBindByName(column = "식품코드")
+    private String code;
 
-    // 내부 클래스로 NullableFloatConverter 정의 (패키지 분리 안함)
-    public static class NullableFloatConverter extends AbstractBeanField<Float, String> {
-        @Override
-        protected Float convert(String value) {
-            if (value == null || value.trim().isEmpty()) {
-                return null;
-            }
-            try {
-                return Float.parseFloat(value.trim());
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        }
-    }
+    @CsvBindByName(column = "출처명")
+    private String source;
+
+    @CsvBindByName(column = "제조사명")
+    private String manufacturer;
+
+    @CsvBindByName(column = "제공기관명")
+    private String provider;
+
+    @CsvBindByName(column = "데이터생성일자")
+    private String dataCreatedAt;
+
+    @CsvBindByName(column = "데이터기준일자")
+    private String dataReferenceAt;
 }

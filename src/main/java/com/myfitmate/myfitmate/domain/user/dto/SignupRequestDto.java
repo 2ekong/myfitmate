@@ -1,37 +1,45 @@
 package com.myfitmate.myfitmate.domain.user.dto;
 
-import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Getter
 @NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
 public class SignupRequestDto {
 
-    @NotBlank(message = "아이디는 필수입니다.")
+    @JsonProperty("username")
     private String username;
 
-    @NotBlank(message = "실명은 필수입니다.")
+    @JsonProperty("realName")
     private String realName;
 
-    @Email(message = "올바른 이메일 형식이 아닙니다.")
-    @NotBlank(message = "이메일은 필수입니다.")
+    @JsonProperty("email")
     private String email;
 
-    @NotBlank(message = "비밀번호는 필수입니다.")
+    @JsonProperty("password")
     private String password;
 
-    @NotBlank(message = "닉네임은 필수입니다.")
+    @JsonProperty("nickname")
     private String nickname;
 
-    @NotNull(message = "성별은 필수입니다.")
-    private String gender;  // ENUM 검증은 컨트롤러에서 수동 검증해도 되고 커스텀 Validator 써도 됨
+    @JsonProperty("gender")
+    private String gender;
 
-    @NotNull(message = "생년월일은 필수입니다.")
-    private String birthDate;  // yyyy-MM-dd 형식
+    @JsonProperty("birthDate")
+    private String birthDate;
 
-    private Float heightCm;  // nullable
-    private Float weightKg;  // nullable
+    @JsonProperty("heightCm")
+    private Float heightCm;
 
-    private String goal; // optional (기본값: maintain)
+    @JsonProperty("weightKg")
+    private Float weightKg;
+
+    @JsonProperty("goal")
+    private String goal;
 }
