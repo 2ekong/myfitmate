@@ -1,5 +1,6 @@
 package com.myfitmate.myfitmate.domain.meal.entity;
 
+import com.myfitmate.myfitmate.domain.meal.entity.MealType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -7,27 +8,25 @@ import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-@Table(name = "meal_log")
 public class MealLog {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long mealId;
-
     private Long userId;
 
+    private Long mealId;
+
     @Enumerated(EnumType.STRING)
-    private ActionType action;
+    private ActionType actionType;
 
-    @Lob
-    private String snapshot;
+    @Enumerated(EnumType.STRING)
+    private MealType mealType;
 
-    @Column(name = "action_time", columnDefinition = "datetime default current_timestamp")
     private LocalDateTime actionTime;
 
     public enum ActionType {

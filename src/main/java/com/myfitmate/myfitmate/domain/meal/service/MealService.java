@@ -1,263 +1,238 @@
 package com.myfitmate.myfitmate.domain.meal.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myfitmate.myfitmate.domain.food.entity.Food;
 import com.myfitmate.myfitmate.domain.food.repository.FoodRepository;
 import com.myfitmate.myfitmate.domain.meal.dto.MealRequestDto;
 import com.myfitmate.myfitmate.domain.meal.dto.MealResponseDto;
-import com.myfitmate.myfitmate.domain.meal.dto.MealResponseDto.FoodDetail;
-import com.myfitmate.myfitmate.domain.meal.entity.Meal;
-import com.myfitmate.myfitmate.domain.meal.entity.MealFood;
-import com.myfitmate.myfitmate.domain.meal.entity.MealImage;
-import com.myfitmate.myfitmate.domain.meal.entity.MealLog;
+import com.myfitmate.myfitmate.domain.meal.entity.*;
 import com.myfitmate.myfitmate.domain.meal.exception.MealErrorCode;
 import com.myfitmate.myfitmate.domain.meal.exception.MealException;
-import com.myfitmate.myfitmate.domain.meal.repository.MealFoodRepository;
-import com.myfitmate.myfitmate.domain.meal.repository.MealImageRepository;
-import com.myfitmate.myfitmate.domain.meal.repository.MealLogRepository;
-import com.myfitmate.myfitmate.domain.meal.repository.MealRepository;
+import com.myfitmate.myfitmate.domain.meal.repository.*;
+import com.myfitmate.myfitmate.domain.meal.util.MealImageUtil;
 import com.myfitmate.myfitmate.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class MealService {
 
     private final MealRepository mealRepository;
-    private final FoodRepository foodRepository;
-    private final UserRepository userRepository;
     private final MealFoodRepository mealFoodRepository;
     private final MealImageRepository mealImageRepository;
     private final MealLogRepository mealLogRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final FoodRepository foodRepository;
+    private final UserRepository userRepository;
+    private final MealImageUtil mealImageUtil;
 
+    // 식단 등록
+    @Transactional
     public MealResponseDto registerMeal(MealRequestDto dto, Long userId, MultipartFile imageFile) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new MealException(MealErrorCode.USER_NOT_FOUND));
+        // 유효한 사용자 ID인지 확인
+        validateUser(userId);
 
-        LocalDate date = dto.getEatTime().toLocalDate();
-        LocalDateTime startOfDay = date.atStartOfDay();
-        LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
+        // 같은 날 같은 시간대(아침/점심 등)에 이미 식단이 등록되어 있는지 확인
+        validateDuplicateMeal(userId, dto);
 
-        boolean exists = mealRepository.existsByUserIdAndEatTimeBetweenAndMealType(
-                userId, startOfDay, endOfDay, dto.getMealType());
+        // Meal 엔티티를 생성하여 저장 (초기 totalCalories는 0)
+        Meal meal = createAndSaveMeal(dto, userId, imageFile);
 
+        // 음식 리스트 저장 및 총 칼로리 계산
+        float totalCalories = saveMealFoods(meal, dto);
+        meal.updateTotalCalories(totalCalories);
+
+        // 이미지 파일이 있다면 저장
+        if (isValidImage(imageFile)) {
+            saveMealImage(meal, imageFile);
+        }
+
+        // 로그 저장
+        saveMealLog(meal, userId, MealLog.ActionType.CREATE);
+
+        // 클라이언트에게 응답할 DTO 반환
+        return toResponse(meal);
+    }
+
+    // 식단 조회
+    @Transactional(readOnly = true)
+    public MealResponseDto getMealById(Long mealId, Long userId) {
+        Meal meal = getAuthorizedMeal(mealId, userId);
+        return toResponse(meal);
+    }
+
+
+    // 식단 수정
+    @Transactional
+    public MealResponseDto updateMeal(Long mealId, MealRequestDto dto, MultipartFile imageFile, Long userId) {
+        // 사용자 인증 및 해당 사용자의 식단인지 확인
+        Meal meal = getAuthorizedMeal(mealId, userId);
+
+        // 기존 음식 정보 제거
+        mealFoodRepository.deleteByMeal(meal);
+
+        // 새 음식 정보 저장 및 총 칼로리 갱신
+        float totalCalories = saveMealFoods(meal, dto);
+        meal.updateMeal(dto.getEatTime(), dto.getMealType(), totalCalories, isValidImage(imageFile));
+
+        // 이미지 파일이 있다면 이미지 교체
+        if (isValidImage(imageFile)) {
+            updateMealImage(meal, imageFile);
+        }
+
+        // 로그 저장
+        saveMealLog(meal, userId, MealLog.ActionType.UPDATE);
+        return toResponse(meal);
+    }
+
+    // 식단 삭제
+    @Transactional
+    public void deleteMeal(Long mealId, Long userId) {
+        Meal meal = getAuthorizedMeal(mealId, userId);
+        mealFoodRepository.deleteByMeal(meal);
+        deleteMealImageIfExists(meal);
+        saveMealLog(meal, userId, MealLog.ActionType.DELETE);
+        mealRepository.delete(meal);
+    }
+
+    // 사용자 존재 여부 확인
+    private void validateUser(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new MealException(MealErrorCode.USER_NOT_FOUND);
+        }
+    }
+
+    // 중복 식단 검사 (같은 날짜와 식사 타입 중복 등록 방지)
+    private void validateDuplicateMeal(Long userId, MealRequestDto dto) {
+        LocalDateTime start = dto.getEatTime().toLocalDate().atStartOfDay();
+        LocalDateTime end = dto.getEatTime().toLocalDate().atTime(LocalTime.MAX);
+        boolean exists = mealRepository.existsByUserIdAndEatTimeBetweenAndMealType(userId, start, end, dto.getMealType());
         if (exists) {
             throw new MealException(MealErrorCode.DUPLICATE_MEAL);
         }
+    }
 
+    // Meal 엔티티 생성 후 DB 저장
+    private Meal createAndSaveMeal(MealRequestDto dto, Long userId, MultipartFile imageFile) {
         Meal meal = Meal.builder()
                 .userId(userId)
                 .eatTime(dto.getEatTime())
                 .mealType(dto.getMealType())
-                .hasImage(imageFile != null && !imageFile.isEmpty())
+                .hasImage(isValidImage(imageFile))
                 .totalCalories(0f)
                 .build();
+        return mealRepository.save(meal);
+    }
 
+    // MealFood 엔티티 생성 및 총 칼로리 계산
+    private float saveMealFoods(Meal meal, MealRequestDto dto) {
         float totalCalories = 0f;
-
-        for (MealRequestDto.FoodItem item : dto.getFoodList()) {
-            Food food = foodRepository.findById(item.foodId())
+        for (MealRequestDto.FoodInfo foodInfo : dto.getFoodList()) {
+            Food food = foodRepository.findById(foodInfo.getFoodId())
                     .orElseThrow(() -> new MealException(MealErrorCode.FOOD_NOT_FOUND));
-
-            float calories = food.getCalories() * (item.quantity() / food.getStandardAmount());
-            totalCalories += calories;
-            meal.addMealFood(item.foodId(), item.quantity(), calories);
-        }
-
-        meal.setTotalCalories(totalCalories);
-        Meal savedMeal = mealRepository.save(meal);
-
-        if (imageFile != null && !imageFile.isEmpty()) {
-            try {
-                String uploadDir = "src/main/resources/static/uploads/meal-images/";
-                String fileName = "meal_" + savedMeal.getId() + "_" + System.currentTimeMillis() + ".jpg";
-                Path filePath = Paths.get(uploadDir + fileName);
-
-                File dir = new File(uploadDir);
-                if (!dir.exists() && !dir.mkdirs()) {
-                    throw new MealException(MealErrorCode.IMAGE_DIRECTORY_CREATE_FAIL);
-                }
-
-                Files.write(filePath, imageFile.getBytes());
-                String imageUrl = "/uploads/meal-images/" + fileName;
-
-                MealImage mealImage = MealImage.builder()
-                        .mealId(savedMeal.getId())
-                        .filePath(imageUrl)
-                        .hash(String.valueOf(imageFile.hashCode()))
-                        .build();
-                mealImageRepository.save(mealImage);
-
-            } catch (IOException e) {
-                throw new MealException(MealErrorCode.IMAGE_SAVE_FAIL, e);
-            }
-        }
-
-        try {
-            MealLog mealLog = MealLog.builder()
-                    .mealId(savedMeal.getId())
-                    .userId(userId)
-                    .action(MealLog.ActionType.CREATE)
-                    .snapshot(objectMapper.writeValueAsString(savedMeal))
-                    .actionTime(LocalDateTime.now())
+            float foodCalories = food.getCalories() * foodInfo.getQuantity();
+            MealFood mealFood = MealFood.builder()
+                    .meal(meal)
+                    .food(food)
+                    .quantity(foodInfo.getQuantity())
+                    .calories(foodCalories)
                     .build();
-            mealLogRepository.save(mealLog);
-        } catch (Exception e) {
-            throw new MealException(MealErrorCode.LOG_SAVE_FAIL, e);
+            mealFoodRepository.save(mealFood);
+            totalCalories += foodCalories;
         }
-
-        return convertToDto(savedMeal);
+        return totalCalories;
     }
 
-    public List<MealResponseDto> getMealsByDay(Long userId, LocalDate date) {
-        LocalDateTime start = date.atStartOfDay();
-        LocalDateTime end = date.atTime(LocalTime.MAX);
-
-        List<Meal> meals = mealRepository.findByUserIdAndEatTimeBetweenOrderByEatTimeAsc(userId, start, end);
-        return meals.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+    // 이미지 저장 및 MealImage 엔티티 저장
+    private void saveMealImage(Meal meal, MultipartFile imageFile) {
+        try {
+            String path = mealImageUtil.saveImage(imageFile);
+            MealImage image = MealImage.builder()
+                    .meal(meal)
+                    .filePath(path)
+                    .build();
+            mealImageRepository.save(image);
+        } catch (Exception e) {
+            throw new MealException(MealErrorCode.FILE_UPLOAD_FAILED);
+        }
     }
 
-    public Optional<Meal> getMealById(Long id) {
-        return mealRepository.findById(id);
+    // 기존 이미지 삭제 후 새로운 이미지로 교체
+    private void updateMealImage(Meal meal, MultipartFile imageFile) {
+        mealImageRepository.findByMeal(meal).ifPresent(existing -> {
+            mealImageUtil.deleteImage(existing.getFilePath());
+            mealImageRepository.delete(existing);
+        });
+        saveMealImage(meal, imageFile);
     }
 
-    public MealResponseDto updateMeal(Long mealId, Long userId, MealRequestDto dto) {
+    // 이미지 존재 시 삭제
+    private void deleteMealImageIfExists(Meal meal) {
+        mealImageRepository.findByMeal(meal).ifPresent(image -> {
+            mealImageUtil.deleteImage(image.getFilePath());
+            mealImageRepository.delete(image);
+        });
+    }
+
+    // 로그 저장 (등록, 수정, 삭제 구분)
+    private void saveMealLog(Meal meal, Long userId, MealLog.ActionType actionType) {
+        MealLog log = MealLog.builder()
+                .mealId(meal.getId())
+                .userId(userId)
+                .actionType(actionType)
+                .mealType(meal.getMealType())
+                .actionTime(LocalDateTime.now())
+                .build();
+        mealLogRepository.save(log);
+    }
+
+    // 사용자가 소유한 식단인지 확인
+    private Meal getAuthorizedMeal(Long mealId, Long userId) {
         Meal meal = mealRepository.findById(mealId)
                 .orElseThrow(() -> new MealException(MealErrorCode.MEAL_NOT_FOUND));
-
         if (!meal.getUserId().equals(userId)) {
             throw new MealException(MealErrorCode.UNAUTHORIZED_ACCESS);
         }
-
-        meal.setMealType(dto.getMealType());
-        meal.setEatTime(dto.getEatTime());
-
-        mealFoodRepository.deleteByMealId(meal.getId());
-
-        List<MealFood> newMealFoods = new ArrayList<>();
-        float totalCalories = 0f;
-
-        for (MealRequestDto.FoodItem item : dto.getFoodList()) {
-            Food food = foodRepository.findById(item.foodId())
-                    .orElseThrow(() -> new MealException(MealErrorCode.FOOD_NOT_FOUND));
-
-            float calories = food.getCalories() * (item.quantity() / food.getStandardAmount());
-
-            MealFood mealFood = MealFood.builder()
-                    .meal(meal)
-                    .foodId(food.getId())
-                    .quantity(item.quantity())
-                    .calories(calories)
-                    .build();
-
-            newMealFoods.add(mealFood);
-            totalCalories += calories;
-        }
-
-        meal.setMealFoods(newMealFoods);
-        meal.setTotalCalories(totalCalories);
-
-        mealRepository.save(meal);
-
-        try {
-            MealLog mealLog = MealLog.builder()
-                    .mealId(meal.getId())
-                    .userId(userId)
-                    .action(MealLog.ActionType.UPDATE)
-                    .snapshot(objectMapper.writeValueAsString(meal))
-                    .actionTime(LocalDateTime.now())
-                    .build();
-            mealLogRepository.save(mealLog);
-        } catch (Exception e) {
-            throw new MealException(MealErrorCode.LOG_SAVE_FAIL, e);
-        }
-
-        return convertToDto(meal);
+        return meal;
     }
 
-    public MealResponseDto convertToDto(Meal meal) {
-        List<FoodDetail> foodList = meal.getMealFoods().stream()
-                .map(mf -> {
-                    String foodName = foodRepository.findById(mf.getFoodId())
-                            .map(Food::getName)
-                            .orElse("Unknown");
-                    return new FoodDetail(
-                            mf.getFoodId(),
-                            foodName,
-                            mf.getQuantity(),
-                            mf.getCalories()
-                    );
-                }).collect(Collectors.toList());
-
-        String imageUrl = meal.getHasImage() != null && meal.getHasImage()
-                ? mealImageRepository.findByMealId(meal.getId())
-                .map(MealImage::getFilePath)
-                .orElse(null)
-                : null;
-
-        return new MealResponseDto(
-                meal.getId(),
-                meal.getEatTime(),
-                meal.getMealType(),
-                meal.getTotalCalories(),
-                meal.getHasImage(),
-                foodList,
-                imageUrl
+    // Meal → DTO 변환
+    private MealResponseDto toResponse(Meal meal) {
+        return MealResponseDto.fromEntity(
+                meal,
+                mealFoodRepository.findByMeal(meal),
+                mealImageRepository.findByMeal(meal).orElse(null)
         );
     }
 
-    public void deleteMealById(Long id, Long userId) {
-        Meal meal = mealRepository.findById(id)
-                .orElseThrow(() -> new MealException(MealErrorCode.MEAL_NOT_FOUND));
+    // 이미지 유효성 검사
+    private boolean isValidImage(MultipartFile file) {
+        return file != null && !file.isEmpty();
+    }
 
-        if (!meal.getUserId().equals(userId)) {
-            throw new MealException(MealErrorCode.UNAUTHORIZED_ACCESS);
-        }
+    // 전체 식단 조회
+    @Transactional(readOnly = true)
+    public List<MealResponseDto> getAllMeals(Long userId) {
+        validateUser(userId);
+        List<Meal> meals = mealRepository.findByUserId(userId);
+        return meals.stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
 
-        if (meal.getHasImage() != null && meal.getHasImage()) {
-            mealImageRepository.findByMealId(meal.getId()).ifPresent(image -> {
-                String path = "src/main/resources/static" + image.getFilePath();
-                try {
-                    Files.deleteIfExists(Paths.get(path));
-                } catch (IOException e) {
-                    throw new MealException(MealErrorCode.IMAGE_SAVE_FAIL, e);
-                }
-            });
-        }
-
-        mealRepository.delete(meal);
-
-        try {
-            MealLog mealLog = MealLog.builder()
-                    .mealId(meal.getId())
-                    .userId(userId)
-                    .action(MealLog.ActionType.DELETE)
-                    .snapshot(objectMapper.writeValueAsString(meal))
-                    .actionTime(LocalDateTime.now())
-                    .build();
-            mealLogRepository.save(mealLog);
-        } catch (Exception e) {
-            throw new MealException(MealErrorCode.LOG_SAVE_FAIL, e);
-        }
+    // 키워드 기반 식단 검색
+    @Transactional(readOnly = true)
+    public List<MealResponseDto> searchMeals(Long userId, String keyword) {
+        validateUser(userId);
+        List<Meal> meals = mealRepository.findByUserIdAndKeyword(userId, keyword);
+        return meals.stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 }

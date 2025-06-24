@@ -1,48 +1,62 @@
 package com.myfitmate.myfitmate.domain.meal.dto;
 
+import com.myfitmate.myfitmate.domain.food.entity.Food;
+import com.myfitmate.myfitmate.domain.meal.entity.Meal;
+import com.myfitmate.myfitmate.domain.meal.entity.MealFood;
+import com.myfitmate.myfitmate.domain.meal.entity.MealImage;
 import com.myfitmate.myfitmate.domain.meal.entity.MealType;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
-@Setter
+@Builder
+@AllArgsConstructor
 public class MealResponseDto {
+
     private Long id;
+    private Long userId;
     private LocalDateTime eatTime;
     private MealType mealType;
     private float totalCalories;
     private boolean hasImage;
-    private List<FoodDetail> foodList;
     private String imageUrl;
+    private List<FoodDetail> foodList;
 
-    public MealResponseDto(Long id, LocalDateTime eatTime, MealType mealType,
-                           float totalCalories, Boolean hasImage, List<FoodDetail> foodList, String imageUrl) {
-        this.id = id;
-        this.eatTime = eatTime;
-        this.mealType = mealType;
-        this.totalCalories = totalCalories;
-        this.hasImage = hasImage;
-        this.foodList = foodList;
-        this.imageUrl = imageUrl;
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    public static class FoodDetail {
+        private Long foodId;
+        private String foodName;
+        private float quantity;
+        private float calories;
     }
 
-    public MealResponseDto(Long id, LocalDateTime eatTime, MealType mealType,
-                           float totalCalories, boolean hasImage,
-                           List<FoodDetail> foodList) {
-        this(id, eatTime, mealType, totalCalories, hasImage, foodList, null);
+    public static MealResponseDto fromEntity(Meal meal, List<MealFood> mealFoods, MealImage mealImage) {
+        List<FoodDetail> foodList = mealFoods.stream().map(mf -> {
+            Food food = mf.getFood();
+            return FoodDetail.builder()
+                    .foodId(food.getId())
+                    .foodName(food.getName())
+                    .quantity(mf.getQuantity())
+                    .calories(mf.getCalories())
+                    .build();
+        }).collect(Collectors.toList());
+
+        return MealResponseDto.builder()
+                .id(meal.getId())
+                .userId(meal.getUserId())
+                .eatTime(meal.getEatTime())
+                .mealType(meal.getMealType())
+                .totalCalories(meal.getTotalCalories())
+                .hasImage(meal.isHasImage())
+                .imageUrl(mealImage != null ? mealImage.getFilePath() : null)
+                .foodList(foodList)
+                .build();
     }
-
-    public record FoodDetail(   //dto 안에서만 쓰이는 구조이면 내부 record로 가능
-                                //외부에서 재사용되지 않고, 작고 명확한 목적만 있을 때 -> 유지보수가 더 쉬움
-            Long foodId,
-            String foodName,
-            float quantity,
-            float calories
-    ){}
-
-
-
 }
