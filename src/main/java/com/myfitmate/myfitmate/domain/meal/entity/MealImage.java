@@ -8,22 +8,24 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-@Table(name = "meal_image")
 public class MealImage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long mealId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "meal_id", nullable = false)
+    private Meal meal;
 
+    @Column(name = "file_path")
     private String filePath;
 
     private String hash;
 
-    @Column(name = "uploaded_at", columnDefinition = "datetime default current_timestamp")
+    @Column(name = "uploaded_at")
     private LocalDateTime uploadedAt;
 }

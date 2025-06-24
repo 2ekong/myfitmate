@@ -1,31 +1,32 @@
 package com.myfitmate.myfitmate.domain.meal.dto;
 
 import com.myfitmate.myfitmate.domain.meal.entity.MealType;
-import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
-@Setter
+@NoArgsConstructor
 public class MealRequestDto {
 
-    @NotNull
     private LocalDateTime eatTime;
-
-    @NotNull
     private MealType mealType;
+    private List<FoodInfo> foodList;
 
-    @NotNull
-    private List<FoodItem> foodList;
+    @Getter
+    @NoArgsConstructor
+    public static class FoodInfo {
+        private Long foodId;
+        private float quantity;
 
-    private boolean hasImage;
+        public Long getFoodId() {
+            return foodId;
+        }
 
-    public record FoodItem(
-            @NotNull
-            Long foodId,
-            float quantity
-    ){}
+        public float getQuantity() {
+            return quantity;
+        }
+    }
 }

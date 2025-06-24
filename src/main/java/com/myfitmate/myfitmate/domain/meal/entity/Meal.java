@@ -1,50 +1,59 @@
 package com.myfitmate.myfitmate.domain.meal.entity;
 
+import com.myfitmate.myfitmate.domain.meal.entity.MealType;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Getter
-@Setter
-@Builder
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+@Builder
 public class Meal {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long userId; //  User 대신 ID만 사용
+    private Long userId;
 
     private LocalDateTime eatTime;
 
     @Enumerated(EnumType.STRING)
     private MealType mealType;
 
-    private Float totalCalories;
+    private float totalCalories;
 
-    private Boolean hasImage;
+    private int version;
 
-    private Integer version;
+    private boolean hasImage;
 
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "meal", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<MealFood> mealFoods = new ArrayList<>();
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = this.createdAt;
+    }
 
-    public void addMealFood(Long foodId, Float quantity, Float calories) {
-        MealFood mealFood = MealFood.builder()
-                .meal(this)
-                .foodId(foodId)
-                .quantity(quantity)
-                .calories(calories)
-                .build();
-        this.mealFoods.add(mealFood);
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void updateTotalCalories(float totalCalories) {
+        this.totalCalories = totalCalories;
+    }
+
+    public void updateMeal(LocalDateTime eatTime, MealType mealType, float totalCalories, boolean hasImage) {
+        this.eatTime = eatTime;
+        this.mealType = mealType;
+        this.totalCalories = totalCalories;
+        this.hasImage = hasImage;
     }
 }

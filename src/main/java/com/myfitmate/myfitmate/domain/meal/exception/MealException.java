@@ -11,9 +11,4 @@ public class MealException extends RuntimeException {
         super(errorCode.getMessage());
         this.errorCode = errorCode;
     }
-
-    public MealException(MealErrorCode errorCode, Throwable cause) {
-        super(errorCode.getMessage(), cause);
-        this.errorCode = errorCode;
-    }
 }
