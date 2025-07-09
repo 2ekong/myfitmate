@@ -1,0 +1,43 @@
+.exercise-add {
+  background-color: transparent !important; /* 바깥 배경이 보이도록 */
+  min-height: 100vh;
+  padding: 20px;
+}
+
+/* 콘텐츠 전체를 감싸는 카드형 박스 */
+.exercise-content-box {
+  background-color: rgba(255, 255, 255, 0.85); /* 연한 흰색 배경, 바깥 배경 보임 */
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.exercise-add-title {
+  font-size: 1.5rem;
+  margin-bottom: 16px;
+}
+
+.exercise-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.search-dropdown {
+  border: 1px solid var(--color-border);
+  padding: 8px;
+  margin: 0;
+  list-style: none;
+}
+
+.search-item {
+  cursor: pointer;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.exercise-form .btn + .btn {
+  margin-top: 8px;
+}

@@ -1,0 +1,17 @@
+/* message.css */
+.message {
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  font-size: 0.95rem;
+}
+
+.message-success {
+  background-color: #e6f4ea;
+  color: var(--color-success);
+}
+
+.message-error {
+  background-color: #fcdfe1;
+  color: var(--color-error);
+}

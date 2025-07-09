@@ -1,0 +1,16 @@
+/* styles/index.css */
+
+/* 1. 초기화 */
+@import './reset.css';
+
+/* 2. 테마 변수 정의 (색상, 폰트, radius 등) */
+@import './theme.css';
+
+/* 3. 기본 레이아웃 */
+@import './layout.css';
+
+/* 4. 공통 컴포넌트 스타일 */
+@import './components/button.css';
+@import './components/form.css';
+@import './components/message.css';
+@import './components/header.css';
