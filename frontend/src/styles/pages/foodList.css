@@ -1,0 +1,154 @@
+.food-list {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.meal-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.meal-title h2 {
+  font-size: 1.8rem;
+}
+
+.food-list-search {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.food-list-search input {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+}
+
+.food-list-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.food-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  background-color: #ffffff;
+}
+
+.food-list-content {
+  flex: 1;
+}
+
+.food-list-name {
+  text-decoration: none;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.food-list-nutrition {
+  font-size: 0.95rem;
+  color: #555;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.food-list-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-left: 16px;
+}
+
+.common-action-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.common-action-btn.light {
+  background-color: #c8e6c9;
+  color: #1b5e20;
+}
+
+.common-action-btn.light:hover {
+  background-color: #a5d6a7;
+}
+
+.common-action-btn.danger {
+  background-color: #ffe082;
+  color: #5d4037;
+}
+
+.common-action-btn.danger:hover {
+  background-color: #ffecb3;
+}
+
+.message {
+  text-align: center;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: bold;
+  margin-bottom: 16px;
+}
+
+.message.success {
+  color: #2e7d32;
+  background-color: #e8f5e9;
+}
+
+.message.error {
+  color: #c62828;
+  background-color: #ffebee;
+}
+
+.food-list-empty {
+  text-align: center;
+  font-style: italic;
+  color: #777;
+  margin-top: 40px;
+}
+
+/* ✅ common.css 또는 foodList.css에 추가 */
+
+.food-list-actions {
+  display: flex;
+  gap: 8px;              /* 버튼 간격 */
+  margin-top: 10px;
+}
+
+.action-btn {
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+}
+
+.action-btn.green {
+  background-color: #C8E6C9;
+  color: #1B5E20;
+}
+
+.action-btn.yellow {
+  background-color: #FFEB99;
+  color: #5C3C00;
+}

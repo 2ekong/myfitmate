@@ -1,0 +1,116 @@
+.meal-list {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.meal-list-title {
+  font-size: 1.5rem;
+  margin-bottom: 16px;
+  color: var(--color-primary);
+}
+
+.meal-list-message {
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  font-size: 0.95rem;
+}
+
+.meal-list-message.success {
+  background-color: #e6f4ea;
+  color: var(--color-success);
+}
+
+.meal-list-message.error {
+  background-color: #fcdfe1;
+  color: var(--color-error);
+}
+
+.meal-list-date-picker {
+  margin-bottom: 12px;
+}
+
+.meal-list-add-button {
+  text-align: right;
+  margin-bottom: 16px;
+}
+
+.meal-list-items {
+  list-style: none;
+  padding: 0;
+}
+
+.meal-list-empty {
+  padding: 12px;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.meal-list-item {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 16px;
+  background-color: #fafafa;
+}
+
+.meal-list-link {
+  font-weight: bold;
+  text-decoration: none;
+  color: var(--color-text);
+}
+
+.meal-list-foods {
+  margin: 8px 0;
+}
+
+.meal-list-calories {
+  margin-bottom: 12px;
+}
+
+.meal-list-actions {
+  display: flex;
+  gap: 8px;
+}
+.meal-list-actions button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+/* 수정 버튼 스타일 */
+.edit-btn {
+  background-color: #c8e6c9;
+  color: #1b5e20;
+}
+
+.edit-btn:hover {
+  background-color: #c8e6c9;
+}
+
+/* 삭제 버튼 스타일 */
+.delete-btn {
+  background-color: #ffe082;
+  color: #5d4037;
+}
+
+.delete-btn:hover {
+  background-color: #ffe082;
+}
+
+.meal-list-item {
+  position: relative;
+  padding-bottom: 60px; /* 하단 버튼 공간 확보 */
+}
+
+.meal-list-actions {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  gap: 8px;
+}

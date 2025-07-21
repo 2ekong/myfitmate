@@ -1,0 +1,59 @@
+.mypage {
+  max-width: 600px;
+  margin: 40px auto;
+}
+
+.mypage-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.mypage-content {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+}
+
+.mypage-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 24px;
+}
+
+.mypage-table td {
+  padding: 8px;
+  font-size: 16px;
+}
+
+.mypage-table td:first-child {
+  font-weight: bold;
+  width: 100px;
+  color: #333;
+}
+
+.mypage-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* 초록색 버튼: 정보 수정 */
+.btn-primary {
+  background-color: #c8e6c9;
+  color: #1b5e20;
+}
+
+/* 연한 오렌지색 버튼: 로그아웃 */
+.btn-logout {
+  background-color: #ffe082;
+  color: #5d4037;
+}

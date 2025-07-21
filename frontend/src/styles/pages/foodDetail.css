@@ -1,0 +1,85 @@
+.food-detail {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.meal-title {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.meal-title h2 {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+
+.meal-title p {
+  color: #5f7d6b;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  padding: 20px;
+}
+
+.food-detail-card p {
+  margin: 10px 0;
+  font-size: 1rem;
+  color: #333;
+}
+
+.message {
+  text-align: center;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.message.success {
+  color: #2e7d32;
+  background-color: #e8f5e9;
+}
+
+.message.error {
+  color: #c62828;
+  background-color: #ffebee;
+}
+
+.submit-section {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.common-action-btn {
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.common-action-btn.light {
+  background-color: #c8e6c9;
+  color: #1b5e20;
+}
+
+.common-action-btn.light:hover {
+  background-color: #a5d6a7;
+}
+
+.common-action-btn:hover {
+  background-color: #ef6c00;
+}
+
+.common-action-btn:not(.light) {
+  background-color: #f57f17;
+  color: white;
+}

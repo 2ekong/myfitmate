@@ -1,0 +1,58 @@
+.signup {
+  padding: 24px;
+}
+
+.signup-title {
+  text-align: center;
+  font-size: 1.8rem;
+  margin-bottom: 24px;
+}
+
+.signup-card {
+  max-width: 600px; /* 🔥 기존 500px → 600px */
+  margin: 0 auto;
+  padding: 32px; /* 🔥 padding 조금 넉넉하게 */
+  background-color: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+
+.signup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-input {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  margin-top: 4px;
+}
+
+/* 주황색 버튼 */
+.signup-submit {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: #FFA500;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.message {
+  text-align: center;
+  margin-bottom: 12px;
+  font-weight: bold;
+}
+
+.message-success {
+  color: green;
+}
+
+.message-error {
+  color: red;
+}

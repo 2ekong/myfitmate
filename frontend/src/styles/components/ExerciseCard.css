@@ -1,0 +1,28 @@
+/* 📄 styles/components/ExerciseCard.css */
+.exercise-card {
+  background: linear-gradient(to bottom right, #fff9db, #f0fff4);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.exercise-card:hover {
+  transform: translateY(-4px);
+}
+
+.exercise-card .emoji {
+  font-size: 1.5rem;
+}
+
+.exercise-card .name {
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.exercise-card .kcal {
+  color: #f57f17;
+  font-weight: bold;
+  margin-top: 4px;
+}

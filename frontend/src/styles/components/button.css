@@ -1,0 +1,41 @@
+/* button.css */
+.btn {
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.btn-danger {
+  background-color: var(--color-error);
+  color: white;
+  opacity: 0.8;
+}
+
+.btn-danger:hover {
+  opacity: 1;
+}
+
+.btn-outline {
+  background-color: white;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.btn-logout {
+  background-color: #666666; /* 중간 회색 */
+  color: white;
+  font-weight: 500;
+}
+
+.btn-logout:hover {
+  background-color: #4d4d4d;
+}
+
