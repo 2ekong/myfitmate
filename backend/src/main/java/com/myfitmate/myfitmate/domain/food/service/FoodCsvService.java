@@ -77,6 +77,7 @@ public class FoodCsvService {
     // ✅ 키워드 검색 (다중 필드 포함)
     public List<FoodCsvDto> searchFoods(String keyword) {
         if (keyword == null || keyword.isBlank()) {
+
             log.warn("❗ 빈 keyword 요청 → 빈 리스트 반환");
             return List.of(); // 또는 Collections.emptyList()
         }

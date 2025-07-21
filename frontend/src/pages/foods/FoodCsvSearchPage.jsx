@@ -34,7 +34,6 @@ function FoodCsvSearchPage() {
     } finally {
       setLoading(false);
     }
-};
 
   const handleRegister = async (food) => {
     try {
